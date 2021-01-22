@@ -24,6 +24,18 @@ from hydra.test_utils.test_utils import chdir_hydra_root
 chdir_hydra_root()
 
 
+def _test_compose(
+    config_file: Optional[str], overrides: List[str], expected: Any
+) -> None:
+    ret = compose(config_file, overrides)
+    assert ret == expected
+
+    # test again to ensure we get the same result
+    # in other words, that the input configs are not mutated during composition.
+    ret = compose(config_file, overrides)
+    assert ret == expected
+
+
 def test_initialize(hydra_restore_singletons: Any) -> None:
     assert not GlobalHydra().is_initialized()
     initialize(config_path=None)
@@ -160,8 +172,7 @@ class TestComposeInits:
         self, config_file: str, overrides: List[str], expected: Any
     ) -> None:
         with initialize(config_path="../examples/jupyter_notebooks/cloud_app/conf"):
-            ret = compose(config_file, overrides)
-            assert ret == expected
+            _test_compose(config_file, overrides, expected)
 
     def test_initialize_config_dir_ctx_with_relative_dir(
         self, config_file: str, overrides: List[str], expected: Any
@@ -176,8 +187,7 @@ class TestComposeInits:
                 config_dir="../examples/jupyter_notebooks/cloud_app/conf",
                 job_name="job_name",
             ):
-                ret = compose(config_file, overrides)
-                assert ret == expected
+                _test_compose(config_file, overrides, expected)
 
     def test_initialize_config_module_ctx(
         self, config_file: str, overrides: List[str], expected: Any
@@ -186,8 +196,7 @@ class TestComposeInits:
             config_module="examples.jupyter_notebooks.cloud_app.conf",
             job_name="job_name",
         ):
-            ret = compose(config_file, overrides)
-            assert ret == expected
+            _test_compose(config_file, overrides, expected)
 
 
 def test_initialize_ctx_with_absolute_dir(
@@ -212,8 +221,7 @@ def test_initialize_config_dir_ctx_with_absolute_dir(
         OmegaConf.save(cfg, f)
 
     with initialize_config_dir(config_dir=str(tmpdir)):
-        ret = compose(overrides=["+test_group=test"])
-        assert ret == {"test_group": cfg}
+        _test_compose(None, ["+test_group=test"], {"test_group": cfg})
 
 
 @pytest.mark.parametrize(
